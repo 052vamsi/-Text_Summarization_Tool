@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0">Text Summarization Tool</h3>
+                </div>
+                <div class="card-body">
+                    <form id="summarizeForm" method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+                        <div class="mb-3">
+                            <label for="textInput" class="form-label">Input Text</label>
+                            <textarea class="form-control" id="textInput" rows="10" placeholder="Paste your text here..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="numSentences" class="form-label">Summary Length</label>
+                            <input type="number" class="form-control" id="numSentences" value="3" min="1" max="10">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Summarize</button>
+                    </form>
+
+                    <div id="summaryContainer" class="mt-4" style="display: none;">
+                        <h4>Summary:</h4>
+                        <div class="mb-3">
+                            <textarea class="form-control" id="summaryText" rows="5" readonly></textarea>
+                        </div>
+                        <button id="copySummary" class="btn btn-secondary me-2">Copy Summary</button>
+                        <button id="downloadSummary" class="btn btn-secondary">Download Summary</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('summarizeForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const text = document.getElementById('textInput').value;
+    const numSentences = document.getElementById('numSentences').value;
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    try {
+        const response = await fetch("{% url 'summarizer:summarize' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                text: text,
+                num_sentences: numSentences
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            document.getElementById('summaryContainer').style.display = 'block';
+            document.getElementById('summaryText').value = data.summary;
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+});
+
+// Copy summary to clipboard
+document.getElementById('copySummary').addEventListener('click', function() {
+    const summaryText = document.getElementById('summaryText');
+    summaryText.select();
+    document.execCommand('copy');
+    alert('Summary copied to clipboard!');
+});
+
+// Download summary as text file
+document.getElementById('downloadSummary').addEventListener('click', function() {
+    const summaryText = document.getElementById('summaryText').value;
+    const blob = new Blob([summaryText], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'summary.txt';
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+});
+</script>
+{% endblock %}
