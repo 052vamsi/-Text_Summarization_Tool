@@ -1,0 +1,5 @@
+Django==4.2.5
+nltk==3.8.1
+spacy==3.8.7
+python-dotenv==1.0.0
+pillow==10.1.0
